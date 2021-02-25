@@ -1,0 +1,39 @@
+##################
+# Types
+##################
+type Task {
+  id: ID!
+  question: String
+}
+
+type TaskResult {
+  id: ID
+  correct: Boolean
+  nextRoom: ID
+}
+
+type Room {
+  task: Task
+  progress: Boolean
+}
+
+##################
+# Queries
+##################
+type Query {
+  getTask(id: ID!): Task
+}
+
+##################
+# Mutations
+##################
+type Mutation {
+  answer(id: ID!, taskId: ID!, answer: String!): TaskResult
+}
+
+##################
+# Subscriptions
+##################
+type Subscription {
+  updatedRoom(id: ID!): Room @aws_subscribe(mutations: ["answer"])
+}

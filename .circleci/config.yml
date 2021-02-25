@@ -1,0 +1,54 @@
+version: 2.1
+
+jobs:
+  test-and-deploy:
+    docker:
+      - image: circleci/python:3.8.3-node
+    parameters:
+      stage_name:
+        type: string
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - dependencies-cache-{{ checksum "yarn.lock" }}
+
+      - run:
+          name: Install Serverless CLI
+          command: sudo npm i -g serverless
+
+      - run:
+          name: Install dependencies
+          command: |
+            yarn install --frozen-lockfile
+
+      - run:
+          name: Deploy application
+          command: npm run ci:deploy
+
+      - save_cache:
+          paths:
+            - node_modules
+          key: dependencies-cache-{{ checksum "yarn.lock" }}
+
+workflows:
+  build-deploy:
+    jobs:
+      # non-master branches deploy to stage named by the branch
+      - test-and-deploy:
+          name: Deploy services
+          stage_name: ${CIRCLE_BRANCH}
+          context: Development
+          filters:
+            branches:
+              ignore: master
+
+      # master branch deploy to the 'prod' stage
+      - test-and-deploy:
+          name: Deploy services
+          stage_name: prod
+          context: Production
+          filters:
+            branches:
+              only: master

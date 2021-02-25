@@ -1,0 +1,45 @@
+##################
+# Types
+##################
+type Room {
+  id: ID!
+  state: AWSJSON
+  answers: AWSJSON
+  hints: AWSJSON
+  start: AWSDateTime
+  end: AWSDateTime
+}
+
+type User {
+  room: Room
+}
+
+##################
+# Inputs
+##################
+
+input RoomInput {
+  state: AWSJSON
+}
+
+##################
+# Queries
+##################
+type Query {
+  getRoom(id: ID!): Room
+}
+
+##################
+# Mutations
+##################
+type Mutation {
+  createRoom: Room
+  updateRoom(id: ID!, input: RoomInput): Room
+}
+
+##################
+# Subscriptions
+##################
+type Subscription {
+  updatedRoom(id: ID!): Room @aws_subscribe(mutations: ["updateRoom"])
+}

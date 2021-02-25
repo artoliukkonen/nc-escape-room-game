@@ -1,0 +1,38 @@
+##################
+# Types
+##################
+type User {
+  id: ID!
+  position: Int
+}
+
+type Room {
+  users: [User]
+}
+
+input UserInput {
+  room: ID
+}
+
+##################
+# Queries
+##################
+type Query {
+  getUser(id: ID!): User
+  me(id: ID): User
+}
+
+##################
+# Mutations
+##################
+type Mutation {
+  createUser: User
+  updateUser(id: ID!, input: UserInput): User
+}
+
+##################
+# Subscriptions
+##################
+type Subscription {
+  updatedUser: User @aws_subscribe(mutations: ["updateUser"])
+}

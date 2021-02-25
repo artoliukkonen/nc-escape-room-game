@@ -1,0 +1,28 @@
+service: ${file(../package.json):name}-frontend
+
+plugins:
+  - fullstack-serverless
+
+custom:
+  fullstack:
+    domain: example.com
+    certificate: arn:aws:acm:us-east-1:XXXXXXXXXXX:certificate/xxxxxx-xxxxxx-xxxxxx
+    bucketName: app # service name & stage automatically prefixed
+    distributionFolder: build
+    indexDocument: index.html
+    errorDocument: index.html
+    singlePageApp: true
+    clientCommand: yarn build
+    noConfirm: true
+
+  environment:
+    dev:
+      UI_DOMAIN: null
+      CERTIFICATE_ARN: null
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: ${opt:region, 'eu-west-1'}
+  stage: ${opt:stage, env:ENV, 'dev'}
+  environment: ${self:custom.environment.${self:provider.stage}}

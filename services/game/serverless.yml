@@ -1,0 +1,140 @@
+service: ${file(../../package.json):name}-game
+
+custom:
+  commonStack: ${file(../../package.json):name}-common-${self:provider.stage}
+  dynamoTableName: ${cf:${self:custom.commonStack}.DynamoTableName}
+
+  environment:
+    default_env: &default_env
+      SERVICE: ${self:service}
+      DYNAMODB_TABLE: ${self:custom.dynamoTableName}
+    dev:
+      <<: *default_env
+      STAGE: dev
+    prod:
+      <<: *default_env
+      STAGE: prod
+
+  output:
+    handler: ../../scripts/stackOutput.handler
+
+  prune:
+    automatic: true
+    number: 3
+
+  parcel:
+    bundleNodeModules: true
+
+  amplify:
+    - filename: ../../frontend/src/amplify/aws-exports.js
+      type: javascript
+
+  appSync:
+    name: appsync-${self:provider.stage}
+    authenticationType: API_KEY
+    serviceRole: AppSyncServiceRole
+    dataSources:
+      - type: AMAZON_DYNAMODB
+        name: GraphQLDynamo
+        config:
+          tableName: ${self:custom.dynamoTableName}
+      - type: AWS_LAMBDA
+        name: GraphqlLambda
+        config:
+          functionName: GraphQLResolver
+      - type: NONE
+        name: None
+    mappingTemplatesLocation: src
+    mappingTemplates:
+      - dataSource: GraphqlLambda
+        type: Query
+        field: me
+        request: defaultLambda.request.vtl
+        response: defaultItem.response.vtl
+      - dataSource: GraphqlLambda
+        type: User
+        field: room
+        request: defaultLambda.request.vtl
+        response: defaultItem.response.vtl
+      - dataSource: GraphqlLambda
+        type: Query
+        field: getRoom
+        request: defaultLambda.request.vtl
+        response: defaultItem.response.vtl
+      - dataSource: GraphqlLambda
+        type: Room
+        field: task
+        request: defaultLambda.request.vtl
+        response: defaultItem.response.vtl
+      - dataSource: GraphQLDynamo
+        type: Room
+        field: users
+        request: user/getUsersByRoom.request.vtl
+        response: defaultList.response.vtl
+      - dataSource: GraphqlLambda
+        type: Mutation
+        field: createUser
+        request: defaultLambda.request.vtl
+        response: defaultItem.response.vtl
+      - dataSource: GraphqlLambda
+        type: Mutation
+        field: createRoom
+        request: defaultLambda.request.vtl
+        response: defaultItem.response.vtl
+      - dataSource: GraphqlLambda
+        type: Mutation
+        field: updateRoom
+        request: defaultLambda.request.vtl
+        response: defaultItem.response.vtl
+      - dataSource: GraphqlLambda
+        type: Mutation
+        field: answer
+        request: defaultLambda.request.vtl
+        response: defaultItem.response.vtl
+      - dataSource: GraphqlLambda
+        type: Mutation
+        field: hint
+        request: defaultLambda.request.vtl
+        response: defaultItem.response.vtl
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-plugin-parcel
+  - serverless-prune-plugin
+  - serverless-appsync-plugin
+  - aws-amplify-serverless-plugin
+  - "@anttiviljami/serverless-stack-output"
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: eu-west-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 512
+  logRetentionInDays: 30
+  environment: ${self:custom.environment.${self:provider.stage}}
+  iamRoleStatements: # permissions for all of your functions can be set here
+    - Effect: Allow
+      Action: # Gives permission to DynamoDB tables in a specific region
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/*
+    - Effect: Allow
+      Action: # Gives permission to AppSync in a specific region
+        - appsync:GraphQL
+      Resource: arn:aws:appsync:#{AWS::Region}:#{AWS::AccountId}:apis/*
+
+functions:
+  GraphQLResolver:
+    handler: src/index.handler
+  admin:
+    handler: src/index.admin
+    events:
+      - http:
+          path: /secret-path-that-no-one-knows
+          method: get
+          cors: true

@@ -1,0 +1,34 @@
+@font-face {
+  font-family: "Reenie Beanie";
+  src: url("./assets/ReenieBeanie-Regular.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Texturina";
+  src: url("./assets/Texturina-VariableFont_opszwght.ttf") format("truetype");
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  font-family: "Texturina";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: black;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+input {
+  font-size: 1.25rem;
+  font-family: "Texturina";
+  padding: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}

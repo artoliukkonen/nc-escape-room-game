@@ -1,0 +1,79 @@
+# Service to handle common resources, like shared DynamoDB & S3 etc.
+
+service: ${file(../../package.json):name}-common
+
+custom:
+  environment:
+    default_env: &default_env
+    SERVICE: ${self:service}
+    TABLE_NAME: ${self:service}-${self:provider.stage}
+    dev:
+      <<: *default_env
+      STAGE: dev
+    prod:
+      <<: *default_env
+      STAGE: prod
+  output:
+    handler: ../../scripts/stackOutput.handler
+  prune:
+    automatic: true
+    number: 3
+  parcel:
+    bundleNodeModules: true
+
+plugins:
+  - serverless-plugin-parcel
+  - "@anttiviljami/serverless-stack-output"
+  - serverless-prune-plugin
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: eu-west-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 512
+  logRetentionInDays: 30
+  environment: ${self:custom.environment.${self:provider.stage}}
+
+functions:
+  healthcheck:
+    handler: src/index.handler
+    events:
+      - http:
+          path: /
+          method: get
+
+resources:
+  Resources:
+    DynamoTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TABLE_NAME}
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: sk
+            KeyType: RANGE
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: sk
+            AttributeType: S
+          - AttributeName: data
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        GlobalSecondaryIndexes:
+          - IndexName: GSI1
+            KeySchema:
+              - AttributeName: sk
+                KeyType: HASH
+              - AttributeName: data
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+  Outputs:
+    DynamoTableName:
+      Value:
+        Ref: DynamoTable

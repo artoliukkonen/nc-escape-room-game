@@ -1,0 +1,20 @@
+{
+  "name": "nc-covid-game",
+  "version": "0.0.1",
+  "description": "",
+  "scripts": {
+    "ci:test": "lerna run ci:test",
+    "ci:deploy": "lerna run ci:deploy --scope=common && lerna run ci:deploy --ignore=common && lerna run ci:deploy:frontend"
+  },
+  "author": "",
+  "license": "MIT",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "services/*"
+  ],
+  "devDependencies": {
+    "lerna": "^3.20.2"
+  },
+  "dependencies": {}
+}

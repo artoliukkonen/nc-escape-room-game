@@ -1,0 +1,14 @@
+##################
+# Types
+##################
+type Hint {
+  id: ID!
+  hint: String
+}
+
+##################
+# Mutations
+##################
+type Mutation {
+  hint(id: ID!): Hint
+}

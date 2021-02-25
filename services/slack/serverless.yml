@@ -1,0 +1,86 @@
+service: ${file(../../package.json):name}-slack
+
+custom:
+  commonStack: ${file(../../package.json):name}-common-${self:provider.stage}
+  dynamoTableName: ${cf:${self:custom.commonStack}.DynamoTableName}
+
+  output:
+    handler: ../../scripts/stackOutput.handler
+  prune:
+    automatic: true
+    number: 3
+  parcel:
+    bundleNodeModules: true
+
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-plugin-parcel
+  - "@anttiviljami/serverless-stack-output"
+  - serverless-prune-plugin
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: eu-west-1
+  stage: ${opt:stage, 'dev'}
+  memorySize: 1024
+  timeout: 30
+  logRetentionInDays: 30
+  environment:
+    STAGE: ${self:provider.stage}
+    SLACK_TOKEN_PARAMETER: /${file(../../package.json):name}/${self:provider.stage}/slack-token
+    DYNAMODB_TABLE: ${self:custom.dynamoTableName}
+    SQS_URL:
+      Ref: SlackMessageQueue
+
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - ssm:GetParameter
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:ssm:*"
+    - Effect: "Allow"
+      Action:
+        - kms:Decrypt
+        - kms:DescribeKey
+      Resource: "*"
+    - Effect: Allow
+      Action:
+        - sqs:*
+      Resource:
+        Fn::GetAtt: [SlackMessageQueue, Arn]
+    - Effect: Allow
+      Action:
+        - dynamodb:DescribeTable
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+      Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/*
+
+functions:
+  healthcheck:
+    handler: src/index.handler
+    events:
+      - http:
+          path: /
+          method: get
+  sendSlackMessage:
+    handler: src/index.sendSlackMessage
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - SlackMessageQueue
+              - Arn
+          batchSize: 1
+
+resources:
+  Resources:
+    SlackMessageQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ${self:service}-queue-${self:provider.stage}
